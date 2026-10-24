@@ -1,0 +1,111 @@
+{
+  "info": {
+    "name": "Uniblox Checkout API",
+    "description": "Run \"Create cart\" first: it stores the new cart's id in the {{cartId}} collection variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "cartId", "value": "" },
+    { "key": "productId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": { "method": "GET", "url": "{{baseUrl}}/products" }
+        },
+        {
+          "name": "Get product",
+          "request": { "method": "GET", "url": "{{baseUrl}}/products/{{productId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Carts",
+      "item": [
+        {
+          "name": "Create cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('cartId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": { "method": "POST", "url": "{{baseUrl}}/carts" }
+        },
+        {
+          "name": "Get cart",
+          "request": { "method": "GET", "url": "{{baseUrl}}/carts/{{cartId}}" }
+        },
+        {
+          "name": "Add item",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}" }
+          }
+        },
+        {
+          "name": "Update item quantity",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items/{{productId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 5\n}" }
+          }
+        },
+        {
+          "name": "Remove item",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/carts/{{cartId}}/items/{{productId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Error examples",
+      "item": [
+        {
+          "name": "Unknown product (404 PRODUCT_NOT_FOUND)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": 9999,\n  \"quantity\": 1\n}" }
+          }
+        },
+        {
+          "name": "Invalid quantity (400 VALIDATION_ERROR)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": 1,\n  \"quantity\": 0\n}" }
+          }
+        },
+        {
+          "name": "More than in stock (409 INSUFFICIENT_STOCK)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": 5,\n  \"quantity\": 4\n}" }
+          }
+        },
+        {
+          "name": "Unknown cart (404 CART_NOT_FOUND)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/carts/00000000-0000-4000-8000-000000000000" }
+        }
+      ]
+    }
+  ]
+}

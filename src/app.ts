@@ -1,5 +1,8 @@
 import express from "express";
 import { prisma } from "./db.js";
+import { errorHandler, notFoundHandler } from "./errors.js";
+import { cartRouter } from "./modules/carts/cart.routes.js";
+import { productRouter } from "./modules/products/product.routes.js";
 
 export const app = express();
 
@@ -9,3 +12,9 @@ app.get("/health", async (_req, res) => {
   await prisma.$queryRaw`SELECT 1`;
   res.json({ status: "ok", db: "ok" });
 });
+
+app.use(productRouter);
+app.use(cartRouter);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
