@@ -8,6 +8,11 @@ export function calculateDiscount(subtotalCents: number, percent: number) {
   return Math.floor((subtotalCents * percent) / 100);
 }
 
+export async function listCoupons() {
+  const coupons = await prisma.coupon.findMany({ orderBy: { milestone: "asc" }, include: { order: { select: { id: true } } } });
+  return coupons.map(({ order, ...coupon }) => ({ ...coupon, orderId: order?.id ?? null }));
+}
+
 export async function generateCoupon() {
   const orderCount = await prisma.order.count();
   const lastCoupon = await prisma.coupon.findFirst({ orderBy: { milestone: "desc" } });

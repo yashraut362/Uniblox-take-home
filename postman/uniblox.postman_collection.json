@@ -221,6 +221,13 @@
           }
         },
         {
+          "name": "List coupons",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/coupons"
+          }
+        },
+        {
           "name": "Report",
           "request": {
             "method": "GET",
