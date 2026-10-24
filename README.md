@@ -40,12 +40,15 @@ Import `postman/uniblox.postman_collection.json` into Postman. Run "Create cart"
 | POST | `/carts/:cartId/checkout` `{ couponCode? }` | 201, the order |
 | GET | `/orders/:orderId` | 200 |
 | POST | `/admin/coupons` (admin) | 201, the new coupon |
+| GET | `/admin/report` (admin) | 200, the sales and coupon summary |
 
 Cart responses are priced live from current product data: each item has `unitPriceCents`, `lineTotalCents`, `availableStock` and `inStock`, and the cart has `status` (`OPEN` or `CHECKED_OUT`), `itemCount` (total quantity) and `subtotalCents`. All money is in integer cents.
 
 Checkout runs in one transaction: it rejects the whole checkout if any item is short on stock, reduces stock, marks the cart `CHECKED_OUT` and creates the order. The order stores its own copy of each item's name, unit price, quantity and line total, so it doesn't change if the product does. A checked-out cart can be viewed but not edited.
 
 Coupons are configured with `COUPON_EVERY_N_ORDERS` (n) and `COUPON_PERCENT` (x) in `.env`. Each n placed orders unlock one milestone (n, 2n, 3n…). `POST /admin/coupons` creates one coupon for the oldest milestone that has been reached and has no coupon yet; call it again to catch up on later milestones. A coupon is a single-use code anyone can redeem, worth the percent it was created with. The discount is `floor(subtotal × percent / 100)` in cents, so the total never goes below 0. The coupon is redeemed inside the checkout transaction, so a failed checkout leaves it available.
+
+The report returns `totalOrders`, `productsSold` (quantity per product, including products with 0 sold), `grossRevenueCents` (sum of order subtotals), `totalDiscountCents`, `netRevenueCents` (sum of order totals, so gross − discounts) and coupon counts (`generated`, `available`, `redeemed`). It only reads, and runs all its queries in one repeatable-read transaction so the numbers reconcile even while orders are being placed.
 
 Routes under `/admin` are administrative. There's no authentication.
 
