@@ -2,6 +2,7 @@ import express from "express";
 import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
 import { cartRouter } from "./modules/carts/cart.routes.js";
+import { couponRouter } from "./modules/coupons/coupon.routes.js";
 import { orderRouter } from "./modules/orders/order.routes.js";
 import { productRouter } from "./modules/products/product.routes.js";
 
@@ -17,6 +18,7 @@ app.get("/health", async (_req, res) => {
 app.use(productRouter);
 app.use(cartRouter);
 app.use(orderRouter);
+app.use(couponRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

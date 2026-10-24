@@ -20,6 +20,10 @@
     {
       "key": "orderId",
       "value": ""
+    },
+    {
+      "key": "couponCode",
+      "value": ""
     }
   ],
   "item": [
@@ -142,10 +146,61 @@
           }
         },
         {
+          "name": "Checkout cart with coupon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"orderId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/checkout",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"couponCode\": \"{{couponCode}}\"\n}"
+            }
+          }
+        },
+        {
           "name": "Get order",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/orders/{{orderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Generate coupon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"couponCode\", pm.response.json().code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/coupons"
           }
         }
       ]
@@ -223,6 +278,23 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/orders/00000000-0000-4000-8000-000000000000"
+          }
+        },
+        {
+          "name": "Unknown coupon (404 COUPON_NOT_FOUND)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/checkout",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"couponCode\": \"NOPE\"\n}"
+            }
           }
         }
       ]

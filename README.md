@@ -37,12 +37,17 @@ Import `postman/uniblox.postman_collection.json` into Postman. Run "Create cart"
 | POST | `/carts/:cartId/items` `{ productId, quantity }` | 200, the cart (adds to existing quantity) |
 | PATCH | `/carts/:cartId/items/:productId` `{ quantity }` | 200, the cart |
 | DELETE | `/carts/:cartId/items/:productId` | 200, the cart |
-| POST | `/carts/:cartId/checkout` | 201, the order |
+| POST | `/carts/:cartId/checkout` `{ couponCode? }` | 201, the order |
 | GET | `/orders/:orderId` | 200 |
+| POST | `/admin/coupons` (admin) | 201, the new coupon |
 
 Cart responses are priced live from current product data: each item has `unitPriceCents`, `lineTotalCents`, `availableStock` and `inStock`, and the cart has `status` (`OPEN` or `CHECKED_OUT`), `itemCount` (total quantity) and `subtotalCents`. All money is in integer cents.
 
 Checkout runs in one transaction: it rejects the whole checkout if any item is short on stock, reduces stock, marks the cart `CHECKED_OUT` and creates the order. The order stores its own copy of each item's name, unit price, quantity and line total, so it doesn't change if the product does. A checked-out cart can be viewed but not edited.
+
+Coupons are configured with `COUPON_EVERY_N_ORDERS` (n) and `COUPON_PERCENT` (x) in `.env`. Each n placed orders unlock one milestone (n, 2n, 3n…). `POST /admin/coupons` creates one coupon for the oldest milestone that has been reached and has no coupon yet; call it again to catch up on later milestones. A coupon is a single-use code anyone can redeem, worth the percent it was created with. The discount is `floor(subtotal × percent / 100)` in cents, so the total never goes below 0. The coupon is redeemed inside the checkout transaction, so a failed checkout leaves it available.
+
+Routes under `/admin` are administrative. There's no authentication.
 
 Errors always look like `{ "error": { "code", "message", "details?" } }`:
 
@@ -50,8 +55,10 @@ Errors always look like `{ "error": { "code", "message", "details?" } }`:
 |--------|------|------|
 | 400 | `VALIDATION_ERROR` | Bad body or path params (`details` lists each field) |
 | 400 | `INVALID_JSON` | Body is not valid JSON |
-| 404 | `PRODUCT_NOT_FOUND`, `CART_NOT_FOUND`, `CART_ITEM_NOT_FOUND`, `ORDER_NOT_FOUND`, `ROUTE_NOT_FOUND` | Resource doesn't exist |
+| 404 | `PRODUCT_NOT_FOUND`, `CART_NOT_FOUND`, `CART_ITEM_NOT_FOUND`, `ORDER_NOT_FOUND`, `COUPON_NOT_FOUND`, `ROUTE_NOT_FOUND` | Resource doesn't exist |
 | 409 | `INSUFFICIENT_STOCK` | Requested quantity exceeds current stock (`details` lists each short product) |
 | 409 | `CART_ALREADY_CHECKED_OUT` | Editing or checking out a cart that was already checked out |
 | 409 | `CART_EMPTY` | Checking out a cart with no items |
+| 409 | `COUPON_ALREADY_REDEEMED` | Coupon was already used by another order |
+| 409 | `COUPON_NOT_ELIGIBLE` | No unrewarded milestone reached yet (`details` has `orderCount` and `nextMilestone`) |
 | 500 | `INTERNAL_ERROR` | Unexpected failure |
