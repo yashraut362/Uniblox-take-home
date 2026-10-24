@@ -1,7 +1,7 @@
 import { prisma } from "../../db.js";
 import { AppError } from "../../errors.js";
 import type { Prisma } from "../../generated/prisma/client.js";
-import { findOpenCart, insufficientStockError, toCartView } from "../carts/cart.service.js";
+import { insufficientStockError, lockCart, toCartView } from "../carts/cart.service.js";
 import { redeemCoupon } from "../coupons/coupon.service.js";
 
 const withItems = {
@@ -11,25 +11,33 @@ const withItems = {
 
 export async function checkout(cartId: string, couponCode?: string) {
   return prisma.$transaction(async (tx) => {
-    const cart = toCartView(await findOpenCart(cartId, tx));
-    if (cart.items.length === 0) throw new AppError(409, "CART_EMPTY", `Cart ${cartId} has no items`);
+    const lockedCart = await lockCart(cartId, tx);
+    if (lockedCart.order) {
+      const order = await tx.order.findUniqueOrThrow({ where: { id: lockedCart.order.id }, include: withItems });
+      return { order, created: false };
+    }
 
-    const shortages = cart.items
-      .filter((item) => !item.inStock)
-      .map((item) => ({ productId: item.productId, available: item.availableStock, requested: item.quantity }));
-    if (shortages.length > 0) throw insufficientStockError(shortages);
+    const cart = toCartView(lockedCart);
+    if (cart.items.length === 0) throw new AppError(409, "CART_EMPTY", `Cart ${cartId} has no items`);
 
     const { couponId, discountCents } = couponCode
       ? await redeemCoupon(couponCode, cart.subtotalCents, tx)
       : { couponId: null, discountCents: 0 };
 
+    const shortages = [];
     for (const item of cart.items) {
-      await tx.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } } });
+      const { count } = await tx.product.updateMany({
+        where: { id: item.productId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+      if (count === 0) {
+        const { stock } = await tx.product.findUniqueOrThrow({ where: { id: item.productId } });
+        shortages.push({ productId: item.productId, available: stock, requested: item.quantity });
+      }
     }
+    if (shortages.length > 0) throw insufficientStockError(shortages);
 
-    await tx.cart.update({ where: { id: cartId }, data: { status: "CHECKED_OUT" } });
-
-    return tx.order.create({
+    const order = await tx.order.create({
       data: {
         cartId,
         couponId,
@@ -48,6 +56,7 @@ export async function checkout(cartId: string, couponCode?: string) {
       },
       include: withItems,
     });
+    return { order, created: true };
   });
 }
 

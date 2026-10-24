@@ -5,8 +5,8 @@ import * as cartService from "./cart.service.js";
 export const cartRouter = Router();
 
 const cartParams = z.object({ cartId: z.uuid() });
-const cartItemParams = cartParams.extend({ productId: z.coerce.number().int().positive() });
-const addItemBody = z.object({ productId: z.int().positive(), quantity: z.int().positive() });
+const cartItemParams = cartParams.extend({ productId: z.uuid() });
+const addItemBody = z.object({ productId: z.uuid(), quantity: z.int().positive() });
 const updateItemBody = z.object({ quantity: z.int().positive() });
 
 cartRouter.post("/carts", async (_req, res) => {

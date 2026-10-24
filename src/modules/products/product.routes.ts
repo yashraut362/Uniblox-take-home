@@ -4,7 +4,7 @@ import * as productService from "./product.service.js";
 
 export const productRouter = Router();
 
-const productParams = z.object({ productId: z.coerce.number().int().positive() });
+const productParams = z.object({ productId: z.uuid() });
 
 productRouter.get("/products", async (_req, res) => {
   res.json(await productService.listProducts());

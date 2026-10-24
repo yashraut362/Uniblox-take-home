@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Uniblox Checkout API",
-    "description": "Run \"Create cart\" first: it stores the new cart's id in the {{cartId}} collection variable.",
+    "description": "Run \"List products\" first (saves {{productId}} and {{deskMatId}}), then \"Create cart\" (saves {{cartId}}).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,7 +15,7 @@
     },
     {
       "key": "productId",
-      "value": "1"
+      "value": ""
     },
     {
       "key": "orderId",
@@ -23,6 +23,10 @@
     },
     {
       "key": "couponCode",
+      "value": ""
+    },
+    {
+      "key": "deskMatId",
       "value": ""
     }
   ],
@@ -42,7 +46,20 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/products"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const products = pm.response.json();",
+                  "pm.collectionVariables.set(\"productId\", products.find(p => p.name === \"Mechanical Keyboard\").id);",
+                  "pm.collectionVariables.set(\"deskMatId\", products.find(p => p.name === \"Limited Edition Desk Mat\").id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get product",
@@ -94,7 +111,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}"
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2\n}"
             }
           }
         },
@@ -228,7 +245,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": 9999,\n  \"quantity\": 1\n}"
+              "raw": "{\n  \"productId\": \"00000000-0000-4000-8000-000000000000\",\n  \"quantity\": 1\n}"
             }
           }
         },
@@ -245,7 +262,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": 1,\n  \"quantity\": 0\n}"
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 0\n}"
             }
           }
         },
@@ -262,7 +279,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": 5,\n  \"quantity\": 4\n}"
+              "raw": "{\n  \"productId\": \"{{deskMatId}}\",\n  \"quantity\": 4\n}"
             }
           }
         },

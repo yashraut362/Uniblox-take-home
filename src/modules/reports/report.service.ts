@@ -8,11 +8,11 @@ export async function getReport() {
         _sum: { subtotalCents: true, discountCents: true, totalCents: true },
       });
       const sold = await tx.orderItem.groupBy({ by: ["productId"], _sum: { quantity: true } });
-      const products = await tx.product.findMany({ select: { id: true, name: true }, orderBy: { id: "asc" } });
-      const coupons = await tx.coupon.groupBy({ by: ["status"], _count: true });
+      const products = await tx.product.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+      const availableCoupons = await tx.coupon.count({ where: { status: "AVAILABLE" } });
+      const redeemedCoupons = await tx.coupon.count({ where: { status: "REDEEMED" } });
 
       const quantityByProduct = new Map(sold.map((row) => [row.productId, row._sum.quantity ?? 0]));
-      const couponCount = (status: string) => coupons.find((row) => row.status === status)?._count ?? 0;
 
       return {
         totalOrders: orders._count,
@@ -25,9 +25,9 @@ export async function getReport() {
         totalDiscountCents: orders._sum.discountCents ?? 0,
         netRevenueCents: orders._sum.totalCents ?? 0,
         coupons: {
-          generated: couponCount("AVAILABLE") + couponCount("REDEEMED"),
-          available: couponCount("AVAILABLE"),
-          redeemed: couponCount("REDEEMED"),
+          generated: availableCoupons + redeemedCoupons,
+          available: availableCoupons,
+          redeemed: redeemedCoupons,
         },
       };
     },

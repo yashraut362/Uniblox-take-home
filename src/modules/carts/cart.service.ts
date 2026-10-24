@@ -5,11 +5,12 @@ import { getProduct } from "../products/product.service.js";
 
 const withItems = {
   items: { include: { product: true }, orderBy: { productId: "asc" } },
+  order: { select: { id: true } },
 } satisfies Prisma.CartInclude;
 
 type CartWithItems = Prisma.CartGetPayload<{ include: typeof withItems }>;
 
-type StockShortage = { productId: number; available: number; requested: number };
+type StockShortage = { productId: string; available: number; requested: number };
 
 export function toCartView(cart: CartWithItems) {
   const items = cart.items.map(({ product, quantity }) => ({
@@ -24,7 +25,8 @@ export function toCartView(cart: CartWithItems) {
 
   return {
     id: cart.id,
-    status: cart.status,
+    status: cart.order ? "CHECKED_OUT" : "OPEN",
+    orderId: cart.order?.id ?? null,
     items,
     itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     subtotalCents: items.reduce((sum, item) => sum + item.lineTotalCents, 0),
@@ -44,25 +46,21 @@ function assertInStock(product: Product, quantity: number) {
   }
 }
 
-export async function findCart(cartId: string, db: Prisma.TransactionClient = prisma) {
+function findItem(cart: CartWithItems, productId: string) {
+  const item = cart.items.find((item) => item.productId === productId);
+  if (!item) throw new AppError(404, "CART_ITEM_NOT_FOUND", `Product ${productId} is not in cart ${cart.id}`);
+  return item;
+}
+
+async function findCart(cartId: string, db: Prisma.TransactionClient = prisma) {
   const cart = await db.cart.findUnique({ where: { id: cartId }, include: withItems });
   if (!cart) throw new AppError(404, "CART_NOT_FOUND", `Cart ${cartId} not found`);
   return cart;
 }
 
-export async function findOpenCart(cartId: string, db: Prisma.TransactionClient = prisma) {
-  const cart = await findCart(cartId, db);
-  if (cart.status !== "OPEN") {
-    throw new AppError(409, "CART_ALREADY_CHECKED_OUT", `Cart ${cartId} has already been checked out`);
-  }
-  return cart;
-}
-
-async function findCartItem(cartId: string, productId: number) {
-  const cart = await findOpenCart(cartId);
-  const item = cart.items.find((item) => item.productId === productId);
-  if (!item) throw new AppError(404, "CART_ITEM_NOT_FOUND", `Product ${productId} is not in cart ${cartId}`);
-  return item;
+export async function lockCart(cartId: string, tx: Prisma.TransactionClient) {
+  await tx.$queryRaw`SELECT 1 FROM "Cart" WHERE id = ${cartId}::uuid FOR UPDATE`;
+  return findCart(cartId, tx);
 }
 
 export async function createCart() {
@@ -74,31 +72,41 @@ export async function getCart(cartId: string) {
   return toCartView(await findCart(cartId));
 }
 
-export async function addItem(cartId: string, productId: number, quantity: number) {
-  const cart = await findOpenCart(cartId);
-  const product = await getProduct(productId);
-  const existing = cart.items.find((item) => item.productId === productId);
-  assertInStock(product, (existing?.quantity ?? 0) + quantity);
+export async function addItem(cartId: string, productId: string, quantity: number) {
+  await prisma.$transaction(async (tx) => {
+    const cart = await lockCart(cartId, tx);
+    if (cart.order) throw new AppError(409, "CART_ALREADY_CHECKED_OUT", `Cart ${cartId} has already been checked out`);
+    const product = await getProduct(productId, tx);
+    const existing = cart.items.find((item) => item.productId === productId);
+    assertInStock(product, (existing?.quantity ?? 0) + quantity);
 
-  await prisma.cartItem.upsert({
-    where: { cartId_productId: { cartId, productId } },
-    create: { cartId, productId, quantity },
-    update: { quantity: { increment: quantity } },
+    await tx.cartItem.upsert({
+      where: { cartId_productId: { cartId, productId } },
+      create: { cartId, productId, quantity },
+      update: { quantity: { increment: quantity } },
+    });
   });
   return getCart(cartId);
 }
 
-export async function updateItemQuantity(cartId: string, productId: number, quantity: number) {
-  const item = await findCartItem(cartId, productId);
-  assertInStock(item.product, quantity);
+export async function updateItemQuantity(cartId: string, productId: string, quantity: number) {
+  await prisma.$transaction(async (tx) => {
+    const cart = await lockCart(cartId, tx);
+    if (cart.order) throw new AppError(409, "CART_ALREADY_CHECKED_OUT", `Cart ${cartId} has already been checked out`);
+    assertInStock(findItem(cart, productId).product, quantity);
 
-  await prisma.cartItem.update({ where: { cartId_productId: { cartId, productId } }, data: { quantity } });
+    await tx.cartItem.update({ where: { cartId_productId: { cartId, productId } }, data: { quantity } });
+  });
   return getCart(cartId);
 }
 
-export async function removeItem(cartId: string, productId: number) {
-  await findCartItem(cartId, productId);
+export async function removeItem(cartId: string, productId: string) {
+  await prisma.$transaction(async (tx) => {
+    const cart = await lockCart(cartId, tx);
+    if (cart.order) throw new AppError(409, "CART_ALREADY_CHECKED_OUT", `Cart ${cartId} has already been checked out`);
+    findItem(cart, productId);
 
-  await prisma.cartItem.delete({ where: { cartId_productId: { cartId, productId } } });
+    await tx.cartItem.delete({ where: { cartId_productId: { cartId, productId } } });
+  });
   return getCart(cartId);
 }

@@ -9,7 +9,7 @@ datasource db {
 }
 
 model Product {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(uuid()) @db.Uuid
   name       String   @unique
   priceCents Int
   stock      Int
@@ -20,16 +20,10 @@ model Product {
   orderItems OrderItem[]
 }
 
-enum CartStatus {
-  OPEN
-  CHECKED_OUT
-}
-
 model Cart {
-  id        String     @id @default(uuid()) @db.Uuid
-  status    CartStatus @default(OPEN)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items CartItem[]
   order Order?
@@ -37,7 +31,7 @@ model Cart {
 
 model CartItem {
   cartId    String @db.Uuid
-  productId Int
+  productId String @db.Uuid
   quantity  Int
 
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -49,7 +43,7 @@ model CartItem {
 model Order {
   id            String   @id @default(uuid()) @db.Uuid
   cartId        String   @unique @db.Uuid
-  couponId      Int?     @unique
+  couponId      String?  @unique @db.Uuid
   subtotalCents Int
   discountCents Int      @default(0)
   totalCents    Int
@@ -66,7 +60,7 @@ enum CouponStatus {
 }
 
 model Coupon {
-  id         Int          @id @default(autoincrement())
+  id         String       @id @default(uuid()) @db.Uuid
   code       String       @unique
   percent    Int
   milestone  Int          @unique
@@ -79,7 +73,7 @@ model Coupon {
 
 model OrderItem {
   orderId        String @db.Uuid
-  productId      Int
+  productId      String @db.Uuid
   productName    String
   unitPriceCents Int
   quantity       Int
