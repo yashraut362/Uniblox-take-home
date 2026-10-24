@@ -16,15 +16,23 @@ model Product {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  cartItems CartItem[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+}
+
+enum CartStatus {
+  OPEN
+  CHECKED_OUT
 }
 
 model Cart {
-  id        String   @id @default(uuid()) @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String     @id @default(uuid()) @db.Uuid
+  status    CartStatus @default(OPEN)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   items CartItem[]
+  order Order?
 }
 
 model CartItem {
@@ -36,4 +44,30 @@ model CartItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@id([cartId, productId])
+}
+
+model Order {
+  id            String   @id @default(uuid()) @db.Uuid
+  cartId        String   @unique @db.Uuid
+  subtotalCents Int
+  discountCents Int      @default(0)
+  totalCents    Int
+  createdAt     DateTime @default(now())
+
+  cart  Cart        @relation(fields: [cartId], references: [id])
+  items OrderItem[]
+}
+
+model OrderItem {
+  orderId        String @db.Uuid
+  productId      Int
+  productName    String
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@id([orderId, productId])
 }

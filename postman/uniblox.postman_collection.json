@@ -5,25 +5,47 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000" },
-    { "key": "cartId", "value": "" },
-    { "key": "productId", "value": "1" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "cartId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": "1"
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Health",
-      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
     },
     {
       "name": "Products",
       "item": [
         {
           "name": "List products",
-          "request": { "method": "GET", "url": "{{baseUrl}}/products" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products"
+          }
         },
         {
           "name": "Get product",
-          "request": { "method": "GET", "url": "{{baseUrl}}/products/{{productId}}" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products/{{productId}}"
+          }
         }
       ]
     },
@@ -37,23 +59,39 @@
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.collectionVariables.set('cartId', pm.response.json().id);"]
+                "exec": [
+                  "pm.collectionVariables.set('cartId', pm.response.json().id);"
+                ]
               }
             }
           ],
-          "request": { "method": "POST", "url": "{{baseUrl}}/carts" }
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts"
+          }
         },
         {
           "name": "Get cart",
-          "request": { "method": "GET", "url": "{{baseUrl}}/carts/{{cartId}}" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/carts/{{cartId}}"
+          }
         },
         {
           "name": "Add item",
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/carts/{{cartId}}/items",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}"
+            }
           }
         },
         {
@@ -61,13 +99,54 @@
           "request": {
             "method": "PATCH",
             "url": "{{baseUrl}}/carts/{{cartId}}/items/{{productId}}",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 5\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}"
+            }
           }
         },
         {
           "name": "Remove item",
-          "request": { "method": "DELETE", "url": "{{baseUrl}}/carts/{{cartId}}/items/{{productId}}" }
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/carts/{{cartId}}/items/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Checkout cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"orderId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/checkout"
+          }
+        },
+        {
+          "name": "Get order",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/{{orderId}}"
+          }
         }
       ]
     },
@@ -79,8 +158,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/carts/{{cartId}}/items",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"productId\": 9999,\n  \"quantity\": 1\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 9999,\n  \"quantity\": 1\n}"
+            }
           }
         },
         {
@@ -88,8 +175,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/carts/{{cartId}}/items",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"productId\": 1,\n  \"quantity\": 0\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"quantity\": 0\n}"
+            }
           }
         },
         {
@@ -97,13 +192,38 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/carts/{{cartId}}/items",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"productId\": 5,\n  \"quantity\": 4\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 5,\n  \"quantity\": 4\n}"
+            }
           }
         },
         {
           "name": "Unknown cart (404 CART_NOT_FOUND)",
-          "request": { "method": "GET", "url": "{{baseUrl}}/carts/00000000-0000-4000-8000-000000000000" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/carts/00000000-0000-4000-8000-000000000000"
+          }
+        },
+        {
+          "name": "Checkout same cart again (409 CART_ALREADY_CHECKED_OUT)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/carts/{{cartId}}/checkout"
+          }
+        },
+        {
+          "name": "Unknown order (404 ORDER_NOT_FOUND)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/00000000-0000-4000-8000-000000000000"
+          }
         }
       ]
     }
