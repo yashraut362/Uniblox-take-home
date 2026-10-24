@@ -28,15 +28,12 @@ model Cart {
 }
 
 model CartItem {
-  id        Int      @id @default(autoincrement())
-  cartId    String   @db.Uuid
+  cartId    String @db.Uuid
   productId Int
   quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 
-  @@unique([cartId, productId])
+  @@id([cartId, productId])
 }

@@ -20,6 +20,7 @@ npm run dev
 - `npm run build` / `npm start` — compile to `dist/` and run
 - `npm run db:migrate` — create/apply migrations after editing `prisma/schema.prisma`, then regenerate the client
 - `npm run db:seed` — upsert seed products (resets their price and stock)
+- `npm run db:reset` — wipe the local DB, re-apply all migrations, re-seed (dev only, deletes all data)
 - `npm run db:studio` — browse data
 
 ## API
@@ -36,6 +37,8 @@ Import `postman/uniblox.postman_collection.json` into Postman. Run "Create cart"
 | POST | `/carts/:cartId/items` `{ productId, quantity }` | 200, the cart (adds to existing quantity) |
 | PATCH | `/carts/:cartId/items/:productId` `{ quantity }` | 200, the cart |
 | DELETE | `/carts/:cartId/items/:productId` | 200, the cart |
+
+Cart responses are priced live from current product data: each item has `unitPriceCents`, `lineTotalCents`, `availableStock` and `inStock`, and the cart has `itemCount` (total quantity) and `subtotalCents`. All money is in integer cents.
 
 Errors always look like `{ "error": { "code", "message", "details?" } }`:
 
